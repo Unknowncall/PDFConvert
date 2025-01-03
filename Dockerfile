@@ -1,4 +1,4 @@
-# Use the official Node.js image
+# Use the official Node.js 22 image
 FROM node:22
 
 # Install necessary system dependencies
@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-0 \
     libxrandr2 \
     xdg-utils \
+    libasound2 \
     --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
