@@ -1,12 +1,14 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
+const html2PDF = require('html2pdf-ts');
 const bodyParser = require('body-parser');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = 3000;
 
 // Replace with your secret API key
-const SECRET_KEY = process.env.KEY || '5ae2819d-8fe0-4bdc-bc39-09307c53cc2d'
+const SECRET_KEY = process.env.KEY || '5ae2819d-8fe0-4bdc-bc39-09307c53cc2d';
 
 // Middleware to parse JSON bodies
 app.use(bodyParser.json());
@@ -20,9 +22,8 @@ app.use((req, res, next) => {
 	next();
 });
 
-// Route to convert HTML to PDF
 app.post('/convert', async (req, res) => {
-	console.log('Request received, starting conversion...');
+	console.log('Request received:', req.body);
 	const {html} = req.body;
 
 	if (!html) {
@@ -31,26 +32,33 @@ app.post('/convert', async (req, res) => {
 	}
 
 	try {
-		const browser = await puppeteer.launch({
-			args: ['--no-sandbox', '--disable-setuid-sandbox'],
-		});
+		const randomId = Math.random().toString(36).substring(7);
 
-		const page = await browser.newPage();
+		// Ensure directory exists
+		const dir = path.join(__dirname, 'tmp');
+		if (!fs.existsSync(dir)) {
+			fs.mkdirSync(dir);
+		}
 
-		await page.setContent(html, {waitUntil: 'networkidle0'});
-		const pdfBuffer = await page.pdf({
+		const absolutePath = path.join(dir, `${randomId}.pdf`);
+
+		const options = {
 			format: 'A4',
-			printBackground: true,
+			filePath: absolutePath,
+			landscape: false,
+			resolution: {
+				height: 1920,
+				width: 1080,
+			},
+		};
+
+		await html2PDF.html2pdf.createPDF(html, options);
+		res.status(200).sendFile(absolutePath);
+
+		res.on('finish', () => {
+			fs.unlinkSync(absolutePath);
 		});
 
-		await browser.close();
-
-		res.set({
-			'Content-Type': 'application/pdf',
-			'Content-Disposition': 'attachment; filename="output.pdf"',
-		});
-
-		res.send(pdfBuffer);
 	} catch (error) {
 		console.error('Error generating PDF:', error);
 		res.status(500).json({error: 'Internal Server Error'});
