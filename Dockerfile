@@ -1,4 +1,4 @@
-# Use the official Node.js 22 image
+# Use the official Node.js image
 FROM node:22
 
 # Install necessary system dependencies
